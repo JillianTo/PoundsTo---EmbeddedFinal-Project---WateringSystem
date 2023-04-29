@@ -1,0 +1,30 @@
+
+interrupt(timer every 2 seconds) {
+	if(!readMoisture()) {
+		updateLED(false, readSingleADC(tempPin));
+		mqttMsg(moistureTopic, "Soil moisture is low, watering");
+		water();
+	} else {
+	}
+}
+
+bool readMoisture() {
+	if(readSingleADC(moisturePin) < threshold) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
+void water() {
+	writePWM(motorPin, openPos);
+	writePWM(motorPin, closePos);
+}
+
+void updateLED(bool moisture) {
+	if(moisture) {
+		writeLED(moistureLine, "Soil moisture is good");
+	} else {
+		writeLED(moistureLine, "Soil moisture is dry");
+	}
+}
