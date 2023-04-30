@@ -2,44 +2,56 @@
 
 int moisture;
 const char moistureThreshold = 55;
+char moistureStr[5];
 
-void uartInit(void);
+void uartInit();
 void gpioInit();
 void adcInit();
-void timerInit();
+void timerB3Init();
 void rotateServo();
+void intToCharArr(int value, char* str, int base);
+void strReverse(char* begin, char* end);
 
 void main(void) {
     WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;
 
+    int strIdx;
+
     gpioInit();
     uartInit();
+    timerB3Init();
     _delay_cycles(5); // Wait for ADC ref to settle
     adcInit();
 
     while(1){
+
         // Transmit a check byte ';'
         _delay_cycles(20000);
         while((UCA1IFG & UCTXIFG)==0);
         UCA1TXBUF = ';' ;
 
-        // Transmit ADC moisture reading
+        // Wait in low power mode until ADC interrupt
         ADCCTL0 |= ADCENC | ADCSC; // Sampling and conversion start
         __bis_SR_register(LPM0_bits | GIE); // LPM0, ADC_ISR will force exit
         __no_operation(); // for debug only
+
+        // Transmit ADC moisture reading
         //while((ADCCTL0 & ADCIFG) == 0); // check the Flag, while its low just wait
         //_delay_cycles(200000);
         //moisture = ADCMEM0; // read the converted data into a variable
-        moisture = (int)(moisture >> 5); // reduce value to fit in char, ranges from about 45-85
-        ADCCTL0 &= ~ADCIFG;
-        while((UCA1IFG & UCTXIFG)==0); //Wait until the UART transmitter is ready //UCTXIFG
-        UCA1TXBUF = (char)(moisture/10); // send number in 10s place
-        UCA1TXBUF = (char)(moisture%10); // send number in 1s place
+        //ADCCTL0 &= ~ADCIFG;
+        //moisture = (int)(moisture >> 5); // reduce value to fit in char, ranges from about 45-85
+        intToCharArr(moisture, moistureStr, 10);
+        strIdx = 0;
+        while(moistureStr[strIdx]!='\0') {
+            while((UCA1IFG & UCTXIFG)==0); //Wait Unitl the UART transmitter is ready //UCTXIFG
+            UCA1TXBUF = moistureStr[strIdx++] ; //Transmit the received data.
+        }
     }
 }
 
-void uartInit(void) {
+void uartInit() {
 
     // Configure UART pins
     P4SEL0 |= BIT2 | BIT3; // set 2-UART pin as second function
@@ -106,11 +118,12 @@ void adcInit(){
 
 }
 
-void timerInit() {
+void timerB3Init() {
     // Timer B3 for servo PWM
     TB3CCR0 = 23260-1; // PWM period
     TB3CTL = TBSSEL_2 | MC_1; // SMCLK, up mode
     TB3CCTL4 = OUTMOD_7; // CCR4 reset/set
+
 }
 
 void rotateServo() {
@@ -124,6 +137,35 @@ void rotateServo() {
         }
     }
 
+}
+
+void strReverse(char* begin, char* end) // Function to reverse the order of the ASCII char array elements
+{
+    char aux;
+    while(end>begin)
+    aux=*end, *end--=*begin, *begin++=aux;
+}
+
+void intToCharArr(int value, char* str, int base) { //Function to convert the signed int to an ASCII char array
+    static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    char* wstr=str;
+    int sign;
+    // Validate that base is between 2 and 35 (inclusive)
+    if (base<2 || base>35){
+        *wstr='\0';
+        return;
+    }
+    // Get magnitude and th value
+    sign=value;
+    if (sign < 0)
+        value = -value;
+    do // Perform interger-to-string conversion.
+        *wstr++ = num[value%base]; //create the next number in converse by taking the modulus
+    while(value/=base); // stop when you get a 0 for the quotient
+    if(sign<0) //attach sign character, if needed
+        *wstr++='-';
+    *wstr='\0'; //Attach a null character at end of char array. The string is in reverse order at this point
+    strReverse(str,wstr-1); // Reverse string
 }
 
 // ADC interrupt service routine
@@ -152,7 +194,7 @@ void __attribute__ ((interrupt(ADC_VECTOR))) ADC_ISR (void)
             break;
         case ADCIV_ADCIFG:
             moisture = ADCMEM0;
-            __bic_SR_register_on_exit(LPM0_bits);            // Clear CPUOFF bit from LPM0
+            __bic_SR_register_on_exit(LPM0_bits); // Clear CPUOFF bit from LPM0
             break;
         default:
             break;
