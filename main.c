@@ -1,22 +1,25 @@
 #include <msp430.h>
 
-short moisture;
-const char moistureThreshold = 55;
-const char moistureStrLen = 5;
+const unsigned char moistureStrLen = 4;
+const unsigned char waterOpenThreshold = 100;
 char moistureStr[moistureStrLen];
+char waterOpen = 0x00; // 0 for closed, 1 for opened
 
 void uartInit();
 void gpioInit();
 void adcInit();
 void timerB3Init();
 void rotateServo();
-void shortToCharArr(short num);
+void shortToCharArr(unsigned short num);
 
 void main(void) {
     WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;
 
-    char strIdx;
+    unsigned char strIdx;
+    unsigned char waterOpenCount = 0;
+    unsigned short moisture;
+    unsigned short moistureThreshold = 2400;
 
     gpioInit();
     uartInit();
@@ -27,22 +30,51 @@ void main(void) {
 
     while(1){
 
+        // send ';' to end last sent value
         _delay_cycles(20000);
         while((UCA1IFG & UCTXIFG)==0); //Wait until the UART transmitter is ready //UCTXIFG
         UCA1TXBUF = ';'; //Transmit the received data.
 
+        // read ADC for moisture level
         ADCCTL0 |= ADCENC | ADCSC; // Sampling and conversion start
-        while((ADCCTL0 & ADCIFG) == 0); // check the Flag, while its low just wait
+        while((ADCCTL0 & ADCIFG) == 0); // check the flag, while its low just wait
         _delay_cycles(200000);
         moisture = ADCMEM0;
         ADCCTL0 &= ~ADCIFG;
 
+        // change moisture threshold to current moisture if P2.3 button is pressed
+        if(!(P2IN & BIT3)) {
+                moistureThreshold = moisture;
+        }
+
+        // convert moisture to string and send over UART
         shortToCharArr(moisture);
         strIdx = 0;
         while(strIdx < moistureStrLen) {
             while((UCA1IFG & UCTXIFG)==0); //Wait Unitl the UART transmitter is ready //UCTXIFG
             UCA1TXBUF = moistureStr[strIdx]; //Transmit the received data.
             strIdx++;
+        }
+
+        // check current moisture to open or close water
+        if(moisture > moistureThreshold) { // if currently above threshold
+            if(!waterOpen) { // if water is not already open
+                rotateServo(); // open
+            }
+            waterOpenCount++; // increment water open count to keep track of water level
+        } else if(waterOpen) { // if water is open but moisture is below threshold
+            rotateServo(); // close
+        }
+
+        // if waterOpenCount is above threshold, water is probably empty
+        if(waterOpenCount > waterOpenThreshold) {
+            P1OUT |= BIT0;          // turn on P1.0 red LED
+        }
+
+        // if P4.1 button pressed, water has been replaced
+        if(!(P4IN & BIT1)) {
+            waterOpenCount = 0;
+            P1OUT &= ~BIT0;
         }
     }
 }
@@ -76,16 +108,16 @@ void gpioInit(){
     P2REN |= BIT3; // enable P2.3 resistor
     P2OUT |= BIT3; // set P2.3 resistor to pull-up
     P2IES |= BIT3; // P2.3 High -> Low edge
-    P2IE |= BIT3; // P2.3 interrupt enable
-    P2IFG &= ~BIT3; // clear P2.3 interrupt flag
+    //P2IE |= BIT3; // P2.3 interrupt enable
+    //P2IFG &= ~BIT3; // clear P2.3 interrupt flag
 
     // button, P4.1
     P4DIR &= ~BIT1; // set P4.1 to input
     P4REN |= BIT1; // enable P4.1 resistor
     P4OUT |= BIT1; // set P4.1 resistor to pull-up
     P4IES |= BIT1; // P4.1 High -> Low edge
-    P4IE |= BIT1; // P4.1 interrupt mode
-    P4IFG &= ~BIT1; // clear P4.1 interrupt flag
+    //P4IE |= BIT1; // P4.1 interrupt mode
+    //P4IFG &= ~BIT1; // clear P4.1 interrupt flag
 
     // servo, P6.3
     P6OUT &= ~BIT3; // reset P6.3 output
@@ -105,7 +137,7 @@ void gpioInit(){
 void adcInit(){
 
     // configure ADC10
-    ADCCTL0 |= ADCSHT_8 | ADCON;                             // ADCON, S&H period 30us
+    ADCCTL0 |= ADCSHT_8 | ADCON;                             // ADCON, S&H period 4 clock cycles
     ADCCTL1 |= ADCSHP;                                       // ADCCLK = MODOSC; sampling timer // | ADCSSEL_3 | ADCDIV_7
     ADCCTL2 &= ~ADCRES;                                      // clear ADCRES in ADCCTL
     ADCCTL2 |= ADCRES_2;                                     // 12-bit conversion results
@@ -132,52 +164,19 @@ void rotateServo() {
             _delay_cycles(500); // speed of rotation
         }
     }
+    waterOpen ^= 0x01; // toggle water open
 
 }
 
-void shortToCharArr(short num) {
+void shortToCharArr(unsigned short num) {
 
     static char chars[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    short strIdx = moistureStrLen-2;
+    unsigned char strIdx = moistureStrLen;
 
-    while(strIdx > -1) {
-        moistureStr[strIdx] = chars[num%10];
+    do {
         strIdx--;
+        moistureStr[strIdx] = chars[num%10];
         num/=10;
-    }
-
-    moistureStr[moistureStrLen-1] = '\0';
+    } while(strIdx > 0);
 
 }
-
-/*// ADC interrupt service routine
-#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=ADC_VECTOR
-__interrupt void ADC_ISR(void)
-#elif defined(__GNUC__)
-void __attribute__ ((interrupt(ADC_VECTOR))) ADC_ISR (void)
-#else
-#error Compiler not supported!
-#endif
-{
-    switch(__even_in_range(ADCIV,ADCIV_ADCIFG)) {
-        case ADCIV_NONE:
-            break;
-        case ADCIV_ADCOVIFG:
-            break;
-        case ADCIV_ADCTOVIFG:
-            break;
-        case ADCIV_ADCHIIFG:
-            break;
-        case ADCIV_ADCLOIFG:
-            break;
-        case ADCIV_ADCINIFG:
-            break;
-        case ADCIV_ADCIFG:
-            moisture = ADCMEM0;
-            __bic_SR_register_on_exit(LPM0_bits); // Clear CPUOFF bit from LPM0
-            break;
-        default:
-            break;
-    }
-}*/

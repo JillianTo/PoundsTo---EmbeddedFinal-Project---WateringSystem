@@ -8,6 +8,7 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
+"./BME280_FR.obj" \
 "./main.obj" \
 "../lnk_msp430fr2355.cmd" \
 $(GEN_CMDS__FLAG) \
@@ -140,8 +141,8 @@ WateringSystem.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "main.obj" 
-	-$(RM) "main.d" 
+	-$(RM) "BME280_FR.obj" "main.obj" 
+	-$(RM) "BME280_FR.d" "main.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
