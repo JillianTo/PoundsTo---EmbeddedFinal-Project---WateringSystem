@@ -1,52 +1,48 @@
 #include <msp430.h>
 
-int moisture;
+short moisture;
 const char moistureThreshold = 55;
-char moistureStr[5];
+const char moistureStrLen = 5;
+char moistureStr[moistureStrLen];
 
 void uartInit();
 void gpioInit();
 void adcInit();
 void timerB3Init();
 void rotateServo();
-void intToCharArr(int value, char* str, int base);
-void strReverse(char* begin, char* end);
+void shortToCharArr(short num);
 
 void main(void) {
     WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;
 
-    int strIdx;
+    char strIdx;
 
     gpioInit();
     uartInit();
     timerB3Init();
+
     _delay_cycles(5); // Wait for ADC ref to settle
     adcInit();
 
     while(1){
 
-        // Transmit a check byte ';'
         _delay_cycles(20000);
-        while((UCA1IFG & UCTXIFG)==0);
-        UCA1TXBUF = ';' ;
+        while((UCA1IFG & UCTXIFG)==0); //Wait until the UART transmitter is ready //UCTXIFG
+        UCA1TXBUF = ';'; //Transmit the received data.
 
-        // Wait in low power mode until ADC interrupt
         ADCCTL0 |= ADCENC | ADCSC; // Sampling and conversion start
-        __bis_SR_register(LPM0_bits | GIE); // LPM0, ADC_ISR will force exit
-        __no_operation(); // for debug only
+        while((ADCCTL0 & ADCIFG) == 0); // check the Flag, while its low just wait
+        _delay_cycles(200000);
+        moisture = ADCMEM0;
+        ADCCTL0 &= ~ADCIFG;
 
-        // Transmit ADC moisture reading
-        //while((ADCCTL0 & ADCIFG) == 0); // check the Flag, while its low just wait
-        //_delay_cycles(200000);
-        //moisture = ADCMEM0; // read the converted data into a variable
-        //ADCCTL0 &= ~ADCIFG;
-        //moisture = (int)(moisture >> 5); // reduce value to fit in char, ranges from about 45-85
-        intToCharArr(moisture, moistureStr, 10);
+        shortToCharArr(moisture);
         strIdx = 0;
-        while(moistureStr[strIdx]!='\0') {
+        while(strIdx < moistureStrLen) {
             while((UCA1IFG & UCTXIFG)==0); //Wait Unitl the UART transmitter is ready //UCTXIFG
-            UCA1TXBUF = moistureStr[strIdx++] ; //Transmit the received data.
+            UCA1TXBUF = moistureStr[strIdx]; //Transmit the received data.
+            strIdx++;
         }
     }
 }
@@ -65,12 +61,15 @@ void uartInit() {
     UCA1MCTLW = 0xD600;
     UCA1CTLW0 &= ~UCSWRST; // Initialize eUSCI
     UCA1IE |= UCRXIE; // Enable USCI_A0 RX interrupt
+
 }
 
 void gpioInit(){
     // moisture sensor, P1.1
     P1DIR |= BIT1;
     P1OUT |= BIT1;
+    P1SEL0 |= BIT1; // ADC A1
+    P1SEL1 |= BIT1; // ADC A1
 
     // button, P2.3
     P2DIR &= ~BIT3; // set P2.3 to input
@@ -104,13 +103,10 @@ void gpioInit(){
 }
 
 void adcInit(){
-    // Configure ADC A1 pin
-    P1SEL0 |= BIT1;
-    P1SEL1 |= BIT1;
 
     // configure ADC10
-    ADCCTL0 |= ADCSHT_2 | ADCON;                             // ADCON, S&H=16 ADC clks
-    ADCCTL1 |= ADCSHP;                                       // ADCCLK = MODOSC; sampling timer
+    ADCCTL0 |= ADCSHT_8 | ADCON;                             // ADCON, S&H period 30us
+    ADCCTL1 |= ADCSHP;                                       // ADCCLK = MODOSC; sampling timer // | ADCSSEL_3 | ADCDIV_7
     ADCCTL2 &= ~ADCRES;                                      // clear ADCRES in ADCCTL
     ADCCTL2 |= ADCRES_2;                                     // 12-bit conversion results
     ADCMCTL0 |= ADCINCH_1;                                   // A1 ADC input select; Vref=AVCC
@@ -139,36 +135,22 @@ void rotateServo() {
 
 }
 
-void strReverse(char* begin, char* end) // Function to reverse the order of the ASCII char array elements
-{
-    char aux;
-    while(end>begin)
-    aux=*end, *end--=*begin, *begin++=aux;
-}
+void shortToCharArr(short num) {
 
-void intToCharArr(int value, char* str, int base) { //Function to convert the signed int to an ASCII char array
-    static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    char* wstr=str;
-    int sign;
-    // Validate that base is between 2 and 35 (inclusive)
-    if (base<2 || base>35){
-        *wstr='\0';
-        return;
+    static char chars[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    short strIdx = moistureStrLen-2;
+
+    while(strIdx > -1) {
+        moistureStr[strIdx] = chars[num%10];
+        strIdx--;
+        num/=10;
     }
-    // Get magnitude and th value
-    sign=value;
-    if (sign < 0)
-        value = -value;
-    do // Perform interger-to-string conversion.
-        *wstr++ = num[value%base]; //create the next number in converse by taking the modulus
-    while(value/=base); // stop when you get a 0 for the quotient
-    if(sign<0) //attach sign character, if needed
-        *wstr++='-';
-    *wstr='\0'; //Attach a null character at end of char array. The string is in reverse order at this point
-    strReverse(str,wstr-1); // Reverse string
+
+    moistureStr[moistureStrLen-1] = '\0';
+
 }
 
-// ADC interrupt service routine
+/*// ADC interrupt service routine
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=ADC_VECTOR
 __interrupt void ADC_ISR(void)
@@ -178,8 +160,7 @@ void __attribute__ ((interrupt(ADC_VECTOR))) ADC_ISR (void)
 #error Compiler not supported!
 #endif
 {
-    switch(__even_in_range(ADCIV,ADCIV_ADCIFG))
-    {
+    switch(__even_in_range(ADCIV,ADCIV_ADCIFG)) {
         case ADCIV_NONE:
             break;
         case ADCIV_ADCOVIFG:
@@ -199,5 +180,4 @@ void __attribute__ ((interrupt(ADC_VECTOR))) ADC_ISR (void)
         default:
             break;
     }
-}
-
+}*/
