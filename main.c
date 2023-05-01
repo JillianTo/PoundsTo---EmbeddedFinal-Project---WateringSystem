@@ -1,14 +1,21 @@
 #include <msp430.h>
 
-const unsigned char moistureStrLen = 4;
-const unsigned char waterOpenThreshold = 100;
-char moistureStr[moistureStrLen];
+#define MOISTURE_STR_LEN 4
+#define WATER_OPEN_THRES 100
+#define TEMP_THRES 30
+#define CALADC_15V_30C *((unsigned int *)0x1A1A) // Temperature Sensor Calibration-30C //6682 // See device datasheet for TLV table memory mapping
+#define CALADC_15V_85C *((unsigned int *)0x1A1C) // Temperature Sensor Calibration-High Temperature (85 for Industrial, 105 for Extended)
+
+
+char moistureStr[MOISTURE_STR_LEN];
 char waterOpen = 0x00; // 0 for closed, 1 for opened
 
-void uartInit();
 void gpioInit();
 void adcInit();
-void timerB3Init();
+void adcTempInit();
+void adcMoistureInit();
+void timerInit();
+void uartInit();
 void rotateServo();
 void shortToCharArr(unsigned short num);
 
@@ -19,14 +26,16 @@ void main(void) {
     unsigned char strIdx;
     unsigned char waterOpenCount = 0;
     unsigned short moisture;
-    unsigned short moistureThreshold = 2400;
+    unsigned short moistureThres = 2400;
+    volatile long temp;
+    volatile float calTemp;
 
     gpioInit();
+    adcInit();
+    timerInit();
     uartInit();
-    timerB3Init();
 
     _delay_cycles(5); // Wait for ADC ref to settle
-    adcInit();
 
     while(1){
 
@@ -36,6 +45,7 @@ void main(void) {
         UCA1TXBUF = ';'; //Transmit the received data.
 
         // read ADC for moisture level
+        adcMoistureInit();
         ADCCTL0 |= ADCENC | ADCSC; // Sampling and conversion start
         while((ADCCTL0 & ADCIFG) == 0); // check the flag, while its low just wait
         _delay_cycles(200000);
@@ -44,20 +54,20 @@ void main(void) {
 
         // change moisture threshold to current moisture if P2.3 button is pressed
         if(!(P2IN & BIT3)) {
-                moistureThreshold = moisture;
+                moistureThres = moisture;
         }
 
         // convert moisture to string and send over UART
         shortToCharArr(moisture);
         strIdx = 0;
-        while(strIdx < moistureStrLen) {
+        while(strIdx < MOISTURE_STR_LEN) {
             while((UCA1IFG & UCTXIFG)==0); //Wait Unitl the UART transmitter is ready //UCTXIFG
             UCA1TXBUF = moistureStr[strIdx]; //Transmit the received data.
             strIdx++;
         }
 
         // check current moisture to open or close water
-        if(moisture > moistureThreshold) { // if currently above threshold
+        if(moisture > moistureThres) { // if currently above threshold
             if(!waterOpen) { // if water is not already open
                 rotateServo(); // open
             }
@@ -67,7 +77,7 @@ void main(void) {
         }
 
         // if waterOpenCount is above threshold, water is probably empty
-        if(waterOpenCount > waterOpenThreshold) {
+        if(waterOpenCount > WATER_OPEN_THRES) {
             P1OUT |= BIT0;          // turn on P1.0 red LED
         }
 
@@ -76,27 +86,28 @@ void main(void) {
             waterOpenCount = 0;
             P1OUT &= ~BIT0;
         }
+
+        // read temperature
+        adcTempInit();
+        ADCCTL0 |= ADCENC | ADCSC; // Sampling and conversion start
+        while((ADCCTL0 & ADCIFG) == 0); // check the flag, while its low just wait
+        _delay_cycles(200000);
+        temp = ADCMEM0;
+        ADCCTL0 &= ~ADCIFG;
+        calTemp = (temp-CALADC_15V_30C)*(85-30)/(CALADC_15V_85C-CALADC_15V_30C)+30;
+
+        // turn off green LED if temperature is too high
+        if(calTemp > TEMP_THRES) {
+            P6OUT &= ~BIT6;
+        } else if(!(P6OUT & BIT6)) { // if P6.6 is 0 and temp is less than threshold
+            P6OUT |= BIT6;
+        }
+
     }
 }
 
-void uartInit() {
-
-    // Configure UART pins
-    P4SEL0 |= BIT2 | BIT3; // set 2-UART pin as second function
-    P4SEL1 &= ~BIT2; // set 2-UART pin as second function
-    P4SEL1 &= ~ BIT3; // set 2-UART pin as second function
-
-    // Configure UART
-    UCA1CTLW0 |= UCSWRST;
-    UCA1CTLW0 |= UCSSEL__SMCLK;
-    UCA1BRW = 8; // 115200
-    UCA1MCTLW = 0xD600;
-    UCA1CTLW0 &= ~UCSWRST; // Initialize eUSCI
-    UCA1IE |= UCRXIE; // Enable USCI_A0 RX interrupt
-
-}
-
 void gpioInit(){
+
     // moisture sensor, P1.1
     P1DIR |= BIT1;
     P1OUT |= BIT1;
@@ -130,28 +141,68 @@ void gpioInit(){
     P1DIR |= BIT0; // Set P1.0 to output direction
 
     // LED, P6.6
-    P6OUT &= ~BIT6; // Clear P6.6 output latch for a defined power-off state
+    P6OUT |= BIT6; // start P6.6 on
     P6DIR |= BIT6; // Set P6.6 to output direction
-}
-
-void adcInit(){
-
-    // configure ADC10
-    ADCCTL0 |= ADCSHT_8 | ADCON;                             // ADCON, S&H period 4 clock cycles
-    ADCCTL1 |= ADCSHP;                                       // ADCCLK = MODOSC; sampling timer // | ADCSSEL_3 | ADCDIV_7
-    ADCCTL2 &= ~ADCRES;                                      // clear ADCRES in ADCCTL
-    ADCCTL2 |= ADCRES_2;                                     // 12-bit conversion results
-    ADCMCTL0 |= ADCINCH_1;                                   // A1 ADC input select; Vref=AVCC
-    ADCIE |= ADCIE0;                                         // Enable ADC conv complete interrupt
 
 }
 
-void timerB3Init() {
-    // Timer B3 for servo PWM
+void adcInit() {
+    ADCCTL0 |= ADCSHT_8 | ADCON;                                  // ADC ON, sample period>30us
+    ADCCTL1 |= ADCSHP;                                            // s/w trig, single ch/conv, MODOSC
+    ADCCTL2 &= ~ADCRES;                                           // clear ADCRES in ADCCTL
+    ADCCTL2 |= ADCRES_2;                                          // 12-bit conversion results
+    ADCIE |= ADCIE0;                                               // Enable the Interrupt request for a completed ADC_B conversion
+}
+
+void adcTempInit() {
+    ADCMCTL0 = ADCSREF_1 | ADCINCH_12;                           // ADC input ch A12 => temp sense
+
+    // Configure reference
+    PMMCTL0_H = PMMPW_H;                                          // Unlock the PMM registers
+    PMMCTL2 |= INTREFEN | TSENSOREN;                              // Enable internal reference and temperature sensor
+    __delay_cycles(400);                                          // Delay for reference settling
+}
+
+void adcMoistureInit(){ // ADC A1
+    ADCMCTL0 = ADCINCH_1;                                   // A1 ADC input select; Vref=AVCC
+}
+
+void timerInit() { // Timer B3 for servo PWM
     TB3CCR0 = 23260-1; // PWM period
     TB3CTL = TBSSEL_2 | MC_1; // SMCLK, up mode
     TB3CCTL4 = OUTMOD_7; // CCR4 reset/set
+}
 
+void uartInit() {
+
+    // Configure UART pins
+    P4SEL0 |= BIT2 | BIT3; // set 2-UART pin as second function
+    P4SEL1 &= ~BIT2; // set 2-UART pin as second function
+    P4SEL1 &= ~ BIT3; // set 2-UART pin as second function
+
+    // Configure UART
+    UCA1CTLW0 |= UCSWRST;
+    UCA1CTLW0 |= UCSSEL__SMCLK;
+    UCA1BRW = 8; // 115200
+    UCA1MCTLW = 0xD600;
+    UCA1CTLW0 &= ~UCSWRST; // Initialize eUSCI
+    UCA1IE |= UCRXIE; // Enable USCI_A0 RX interrupt
+
+}
+
+void spiInit() {
+    P1SEL0 |= BIT4 | BIT5 | BIT6 | BIT7;      // set 4-SPI pin as second function
+
+      UCA0CTLW0 |= UCSWRST;                     // **Put state machine in reset**
+                                                // 4-pin, 8-bit SPI slave
+      UCA0CTLW0 |= UCSYNC|UCCKPL|UCMSB|UCMODE_1|UCSTEM;
+                                                // Clock polarity high, MSB
+      UCA0CTLW0 |= UCSSEL__ACLK;                // ACLK
+      UCA0BR0 = 0x02;                           // BRCLK = ACLK/2
+      UCA0BR1 = 0;                              //
+      UCA0MCTLW = 0;                            // No modulation
+      UCA0CTLW0 &= ~UCSWRST;                    // **Initialize USCI state machine**
+      UCA0IE |= UCRXIE;                         // Enable USCI_A0 RX interrupt
 }
 
 void rotateServo() {
@@ -171,7 +222,7 @@ void rotateServo() {
 void shortToCharArr(unsigned short num) {
 
     static char chars[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-    unsigned char strIdx = moistureStrLen;
+    unsigned char strIdx = MOISTURE_STR_LEN;
 
     do {
         strIdx--;

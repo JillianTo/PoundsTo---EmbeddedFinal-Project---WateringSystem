@@ -1,10 +1,10 @@
 ******************************************************************************
                   MSP430 Linker Unix v21.6.1                   
 ******************************************************************************
->> Linked Sun Apr 30 13:56:32 2023
+>> Linked Sun Apr 30 20:55:00 2023
 
 OUTPUT FILE NAME:   <WateringSystem.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 000084de
+ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 000086e2
 
 
 MEMORY CONFIGURATION
@@ -16,8 +16,8 @@ MEMORY CONFIGURATION
   INFO                  00001800   00000200  00000000  00000200  RWIX
   TLVMEM                00001a00   00000200  00000000  00000200  RWIX
   BOOTCODE              00001c00   00000400  00000000  00000400  RWIX
-  RAM                   00002000   00001000  000000cf  00000f31  RWIX
-  FRAM                  00008000   00007f80  00000506  00007a7a  RWIX
+  RAM                   00002000   00001000  000000ca  00000f36  RWIX
+  FRAM                  00008000   00007f80  0000070a  00007876  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   BSLCONFIGURATIONSIGNA 0000ff88   00000002  00000002  00000000  RWIX  ffff 
@@ -79,10 +79,9 @@ SECTION ALLOCATION MAP
  output                                  attributes/
 section   page    origin      length       input sections
 --------  ----  ----------  ----------   ----------------
-.data      0    00002000    00000029     UNINITIALIZED
+.data      0    00002000    00000026     UNINITIALIZED
                   00002000    00000025     main.obj (.data:chars$1)
-                  00002025    00000001     --HOLE--
-                  00002026    00000003     main.obj (.data)
+                  00002025    00000001     main.obj (.data)
 
 .TI.persistent 
 *          0    00008000    00000000     UNINITIALIZED
@@ -91,55 +90,60 @@ section   page    origin      length       input sections
 
 .sysmem    0    00008000    00000000     UNINITIALIZED
 
-.cinit     0    00008000    00000052     
-                  00008000    0000002f     (.cinit..data.load) [load image]
-                  0000802f    00000001     --HOLE-- [fill = 0]
-                  00008030    0000000c     (__TI_handler_table)
-                  0000803c    00000006     (.cinit..bss.load) [load image, compression = zero_init]
-                  00008042    00000010     (__TI_cinit_table)
+.cinit     0    00008000    0000004e     
+                  00008000    0000002c     (.cinit..data.load) [load image]
+                  0000802c    0000000c     (__TI_handler_table)
+                  00008038    00000006     (.cinit..bss.load) [load image, compression = zero_init]
+                  0000803e    00000010     (__TI_cinit_table)
 
-.pinit     0    00008052    00000000     UNINITIALIZED
+.pinit     0    0000804e    00000000     UNINITIALIZED
 
-.binit     0    00008052    00000000     
+.binit     0    0000804e    00000000     
 
 .init_array 
-*          0    00008052    00000000     UNINITIALIZED
+*          0    0000804e    00000000     UNINITIALIZED
 
 .mspabi.exidx 
-*          0    00008052    00000000     UNINITIALIZED
+*          0    0000804e    00000000     UNINITIALIZED
 
 .mspabi.extab 
-*          0    00008052    00000000     UNINITIALIZED
+*          0    0000804e    00000000     UNINITIALIZED
 
-.const     0    00008052    00000000     UNINITIALIZED
+.const     0    0000804e    00000000     UNINITIALIZED
 
-.text      0    00008052    0000048c     
-                  00008052    000000ee     rts430x_lc_sd_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
-                  00008140    000000d8     main.obj (.text:main)
-                  00008218    0000006a     rts430x_lc_sd_eabi.lib : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
-                  00008282    00000060     main.obj (.text:rotateServo)
-                  000082e2    00000056     main.obj (.text:gpioInit)
-                  00008338    00000040     rts430x_lc_sd_eabi.lib : cpy_util.asm.obj (.text:__memcpy_far)
-                  00008378    0000003e                            : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset:__TI_zero_init_nomemset)
-                  000083b6    0000003c     FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib : frwp_init.obj (.text:__mpu_init)
-                  000083f2    0000003c     rts430x_lc_sd_eabi.lib : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
-                  0000842e    0000002c     main.obj (.text:shortToCharArr)
-                  0000845a    0000002c     main.obj (.text:uartInit)
-                  00008486    00000022     main.obj (.text:adcInit)
-                  000084a8    00000016     rts430x_lc_sd_eabi.lib : div16u.asm.obj (.text)
-                  000084be    00000014     main.obj (.text:timerB3Init)
-                  000084d2    00000006     rts430x_lc_sd_eabi.lib : exit.c.obj (.text:abort)
-                  000084d8    00000004                            : pre_init.c.obj (.text:_system_pre_init)
-                  000084dc    00000002                            : startup.c.obj (.text:_system_post_cinit)
+.text      0    0000804e    00000694     
+                  0000804e    0000016e     main.obj (.text:main)
+                  000081bc    000000ee     rts430x_lc_sd_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
+                  000082aa    0000006a                            : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
+                  00008314    00000060     main.obj (.text:rotateServo)
+                  00008374    00000058     rts430x_lc_sd_eabi.lib : div32u.asm.obj (.text)
+                  000083cc    00000056     main.obj (.text:gpioInit)
+                  00008422    0000004a     rts430x_lc_sd_eabi.lib : fs_cmp.asm.obj (.text)
+                  0000846c    0000004a                            : fs_ltof.asm.obj (.text)
+                  000084b6    00000040                            : cpy_util.asm.obj (.text:__memcpy_far)
+                  000084f6    00000040                            : div32s.asm.obj (.text)
+                  00008536    0000003e                            : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset:__TI_zero_init_nomemset)
+                  00008574    0000003c     FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib : frwp_init.obj (.text:__mpu_init)
+                  000085b0    0000003c     rts430x_lc_sd_eabi.lib : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
+                  000085ec    0000002c     main.obj (.text:shortToCharArr)
+                  00008618    0000002c     main.obj (.text:uartInit)
+                  00008644    00000024     rts430x_lc_sd_eabi.lib : mult32_f5hw.asm.obj (.text)
+                  00008668    00000020     main.obj (.text:adcTempInit)
+                  00008688    0000001e     main.obj (.text:adcInit)
+                  000086a6    00000016     rts430x_lc_sd_eabi.lib : div16u.asm.obj (.text)
+                  000086bc    00000014     main.obj (.text:timerInit)
+                  000086d0    00000006     rts430x_lc_sd_eabi.lib : exit.c.obj (.text:abort)
+                  000086d6    00000006     main.obj (.text:adcMoistureInit)
+                  000086dc    00000004     rts430x_lc_sd_eabi.lib : pre_init.c.obj (.text:_system_pre_init)
+                  000086e0    00000002                            : startup.c.obj (.text:_system_post_cinit)
 
 .text:_isr 
-*          0    000084de    00000028     
-                  000084de    00000020     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs_mpu)
-                  000084fe    00000008                            : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+*          0    000086e2    00000028     
+                  000086e2    00000020     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs_mpu)
+                  00008702    00000008                            : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
-.bss       0    0000202a    00000006     UNINITIALIZED
-                  0000202a    00000004     (.common:moistureStr)
-                  0000202e    00000002     (.common:moisture)
+.bss       0    00002026    00000004     UNINITIALIZED
+                  00002026    00000004     (.common:moistureStr)
 
 .stack     0    00002f60    000000a0     UNINITIALIZED
                   00002f60    00000002     rts430x_lc_sd_eabi.lib : boot.c.obj (.stack)
@@ -251,9 +255,9 @@ MODULE SUMMARY
        Module                       code   ro data   rw data
        ------                       ----   -------   -------
     ./
-       main.obj                     540    0         46     
+       main.obj                     724    0         42     
     +--+----------------------------+------+---------+---------+
-       Total:                       540    0         46     
+       Total:                       724    0         42     
                                                             
     /home/jto/ti/ccs1220/ccs/ccs_base/msp430/lib/FR2xx/FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib
        frwp_init.obj                60     0         0      
@@ -263,9 +267,14 @@ MODULE SUMMARY
     /home/jto/ti/ccs1220/ccs/tools/compiler/ti-cgt-msp430_21.6.1.LTS/lib/rts430x_lc_sd_eabi.lib
        copy_decompress_lzss.c.obj   238    0         0      
        autoinit.c.obj               106    0         0      
+       div32u.asm.obj               88     0         0      
+       fs_cmp.asm.obj               74     0         0      
+       fs_ltof.asm.obj              74     0         0      
        cpy_util.asm.obj             64     0         0      
+       div32s.asm.obj               64     0         0      
        copy_zero_init.c.obj         62     0         0      
        copy_decompress_none.c.obj   60     0         0      
+       mult32_f5hw.asm.obj          36     0         0      
        boot.c.obj                   32     2         0      
        div16u.asm.obj               22     0         0      
        isr_trap.asm.obj             8      0         0      
@@ -297,24 +306,24 @@ MODULE SUMMARY
        int45.asm.obj                0      2         0      
        startup.c.obj                2      0         0      
     +--+----------------------------+------+---------+---------+
-       Total:                       604    50        0      
+       Total:                       940    50        0      
                                                             
        Stack:                       0      0         160    
-       Linker Generated:            0      81        0      
+       Linker Generated:            0      78        0      
     +--+----------------------------+------+---------+---------+
-       Grand Total:                 1204   131       206    
+       Grand Total:                 1724   128       202    
 
 
 LINKER GENERATED COPY TABLES
 
-__TI_cinit_table @ 00008042 records: 2, size/record: 8, table size: 16
-	.data: load addr=00008000, load size=0000002f bytes, run addr=00002000, run size=00000029 bytes, compression=copy
-	.bss: load addr=0000803c, load size=00000006 bytes, run addr=0000202a, run size=00000006 bytes, compression=zero_init
+__TI_cinit_table @ 0000803e records: 2, size/record: 8, table size: 16
+	.data: load addr=00008000, load size=0000002c bytes, run addr=00002000, run size=00000026 bytes, compression=copy
+	.bss: load addr=00008038, load size=00000006 bytes, run addr=00002026, run size=00000004 bytes, compression=zero_init
 
 
 LINKER GENERATED HANDLER TABLE
 
-__TI_handler_table @ 00008030 records: 3, size/record: 4, table size: 12
+__TI_handler_table @ 0000802c records: 3, size/record: 4, table size: 12
 	index: 0, handler: __TI_zero_init
 	index: 1, handler: __TI_decompress_lzss
 	index: 2, handler: __TI_decompress_none
@@ -402,7 +411,7 @@ address   name
 00000672  BAKMEM9                                
 00000673  BAKMEM9_H                              
 00000672  BAKMEM9_L                              
-000084d2  C$$EXIT                                
+000086d0  C$$EXIT                                
 000002ee  CAPTIOCTL                              
 000002ef  CAPTIOCTL_H                            
 000002ee  CAPTIOCTL_L                            
@@ -1233,15 +1242,15 @@ address   name
 000001cc  WDTCTL_L                               
 00003000  __STACK_END                            
 000000a0  __STACK_SIZE                           
-00008042  __TI_CINIT_Base                        
-00008052  __TI_CINIT_Limit                       
-00008052  __TI_CINIT_Warm                        
-00008030  __TI_Handler_Table_Base                
-0000803c  __TI_Handler_Table_Limit               
-000084fe  __TI_ISR_TRAP                          
-00008218  __TI_auto_init_nobinit_nopinit_hold_wdt
-00008052  __TI_decompress_lzss                   
-000083f2  __TI_decompress_none                   
+0000803e  __TI_CINIT_Base                        
+0000804e  __TI_CINIT_Limit                       
+0000804e  __TI_CINIT_Warm                        
+0000802c  __TI_Handler_Table_Base                
+00008038  __TI_Handler_Table_Limit               
+00008702  __TI_ISR_TRAP                          
+000082aa  __TI_auto_init_nobinit_nopinit_hold_wdt
+000081bc  __TI_decompress_lzss                   
+000085b0  __TI_decompress_none                   
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             
@@ -1269,35 +1278,42 @@ address   name
 ffffffff  __TI_pprof_out_hndl                    
 ffffffff  __TI_prof_data_size                    
 ffffffff  __TI_prof_data_start                   
-00008378  __TI_zero_init_nomemset                
+00008536  __TI_zero_init_nomemset                
 ffffffff  __c_args__                             
-00008338  __memcpy_far                           
+000084b6  __memcpy_far                           
 00000001  __mpu_enable                           
-000083b6  __mpu_init                             
-000084a8  __mspabi_divu                          
-000084a8  __mspabi_remu                          
-000084de  _c_int00_noargs_mpu                    
+00008574  __mpu_init                             
+00008422  __mspabi_cmpf                          
+000084f6  __mspabi_divli                         
+000086a6  __mspabi_divu                          
+00008374  __mspabi_divul                         
+0000846c  __mspabi_fltlif                        
+00008644  __mspabi_mpyl_f5hw                     
+000084f6  __mspabi_remli                         
+000086a6  __mspabi_remu                          
+00008374  __mspabi_remul                         
+000086e2  _c_int00_noargs_mpu                    
 0000fffe  _reset_vector                          
 00002f60  _stack                                 
-000084dc  _system_post_cinit                     
-000084d8  _system_pre_init                       
-000084d2  abort                                  
-00008486  adcInit                                
+000086e0  _system_post_cinit                     
+000086dc  _system_pre_init                       
+000086d0  abort                                  
+00008688  adcInit                                
+000086d6  adcMoistureInit                        
+00008668  adcTempInit                            
 00008000  fram_rw_start                          
 00008000  fram_rx_start                          
-000082e2  gpioInit                               
+000083cc  gpioInit                               
 00000001  info_fram_protection                   
-00008140  main                                   
-0000202e  moisture                               
-0000202a  moistureStr                            
-00002026  moistureThreshold                      
+0000804e  main                                   
+00002026  moistureStr                            
 00000001  program_fram_protection                
-00008282  rotateServo                            
-0000842e  shortToCharArr                         
+00008314  rotateServo                            
+000085ec  shortToCharArr                         
 00000000  start_protection_offset_address        
-000084be  timerB3Init                            
-0000845a  uartInit                               
-00002028  waterOpen                              
+000086bc  timerInit                              
+00008618  uartInit                               
+00002025  waterOpen                              
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
@@ -2215,40 +2231,47 @@ address   name
 00000cba  SAC3IV                                 
 00000cba  SAC3IV_L                               
 00000cbb  SAC3IV_H                               
-00002026  moistureThreshold                      
-00002028  waterOpen                              
-0000202a  moistureStr                            
-0000202e  moisture                               
+00002025  waterOpen                              
+00002026  moistureStr                            
 00002f60  _stack                                 
 00003000  __STACK_END                            
 00008000  fram_rw_start                          
 00008000  fram_rx_start                          
-00008030  __TI_Handler_Table_Base                
-0000803c  __TI_Handler_Table_Limit               
-00008042  __TI_CINIT_Base                        
-00008052  __TI_CINIT_Limit                       
-00008052  __TI_CINIT_Warm                        
-00008052  __TI_decompress_lzss                   
-00008140  main                                   
-00008218  __TI_auto_init_nobinit_nopinit_hold_wdt
-00008282  rotateServo                            
-000082e2  gpioInit                               
-00008338  __memcpy_far                           
-00008378  __TI_zero_init_nomemset                
-000083b6  __mpu_init                             
-000083f2  __TI_decompress_none                   
-0000842e  shortToCharArr                         
-0000845a  uartInit                               
-00008486  adcInit                                
-000084a8  __mspabi_divu                          
-000084a8  __mspabi_remu                          
-000084be  timerB3Init                            
-000084d2  C$$EXIT                                
-000084d2  abort                                  
-000084d8  _system_pre_init                       
-000084dc  _system_post_cinit                     
-000084de  _c_int00_noargs_mpu                    
-000084fe  __TI_ISR_TRAP                          
+0000802c  __TI_Handler_Table_Base                
+00008038  __TI_Handler_Table_Limit               
+0000803e  __TI_CINIT_Base                        
+0000804e  __TI_CINIT_Limit                       
+0000804e  __TI_CINIT_Warm                        
+0000804e  main                                   
+000081bc  __TI_decompress_lzss                   
+000082aa  __TI_auto_init_nobinit_nopinit_hold_wdt
+00008314  rotateServo                            
+00008374  __mspabi_divul                         
+00008374  __mspabi_remul                         
+000083cc  gpioInit                               
+00008422  __mspabi_cmpf                          
+0000846c  __mspabi_fltlif                        
+000084b6  __memcpy_far                           
+000084f6  __mspabi_divli                         
+000084f6  __mspabi_remli                         
+00008536  __TI_zero_init_nomemset                
+00008574  __mpu_init                             
+000085b0  __TI_decompress_none                   
+000085ec  shortToCharArr                         
+00008618  uartInit                               
+00008644  __mspabi_mpyl_f5hw                     
+00008668  adcTempInit                            
+00008688  adcInit                                
+000086a6  __mspabi_divu                          
+000086a6  __mspabi_remu                          
+000086bc  timerInit                              
+000086d0  C$$EXIT                                
+000086d0  abort                                  
+000086d6  adcMoistureInit                        
+000086dc  _system_pre_init                       
+000086e0  _system_post_cinit                     
+000086e2  _c_int00_noargs_mpu                    
+00008702  __TI_ISR_TRAP                          
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             
@@ -2279,4 +2302,4 @@ ffffffff  __TI_prof_data_size
 ffffffff  __TI_prof_data_start                   
 ffffffff  __c_args__                             
 
-[974 symbols]
+[981 symbols]
