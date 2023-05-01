@@ -14,9 +14,17 @@ The purpose of this project is to monitor the moisture level of the soil that a 
 ## What is in this repo
 - [x] C program for MSP430FR2355
 - [x] Altium schematic and PCB files
+- [x] Final project report
+- [x] Final project presentation slideshow
 
-## Project report
+## Final project report
 https://docs.google.com/document/d/1TFrb6KSUAiLAG3oj3IIO5kEEFQ8917t7/edit?usp=sharing&ouid=112763024028715727878&rtpof=true&sd=true
+
+## Final project presentation slideshow
+https://docs.google.com/presentation/d/1BqugfQRZjcLWyid10XjOiT7qqStXICWF/edit?usp=sharing&ouid=112763024028715727878&rtpof=true&sd=true
 
 ## Thinkspeak channel link
 https://thingspeak.com/channels/2086881
+
+## Altium project link
+https://rowan-university-8.365.altium.com/designs/BF74B491-5B9E-4926-9D84-F9F73393146D
